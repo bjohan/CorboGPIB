@@ -6,6 +6,7 @@ class GpibManager:
         self.gpib = interface
         self.drivers = {}
         self.addressDriverMap = {}
+        self.addressInstrumentMap = {}
 
     def numberOfDevices(self):
         return len(self.addressDriverMap)
@@ -40,6 +41,15 @@ class GpibManager:
         else:
             print "no driver for device at", addr
 
+    def createInstruments(self):
+        for addr, driver in self.addressDriverMap.iteritems():
+            self.addressInstrumentMap[addr] = self.drivers[driver](self.gpib, addr)
+
+    def getInstrumentByAddress(self, address):
+        if len(self.addressDriverMap) != len(self.addressInstrumentMap):
+            self.createInstruments()
+        return self.addressInstrumentMap[address]
+
     def saveConfiguration(self, fileName):
         of = open(fileName, 'w')
         for addr in self.addressDriverMap:
@@ -63,7 +73,6 @@ class GpibManager:
             print "Verifying that", addr, "is a", driver,
             sys.stdout.flush()
             d = self.drivers[driver](self.gpib, addr)
-            #time.sleep(0.1)
             if d.identify():
                 print "OK"
             else:

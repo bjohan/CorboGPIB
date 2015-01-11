@@ -1,6 +1,24 @@
 import time
 import gpib
 
+def format(string, fmt):
+    if fmt == 'i':
+        return int(string)
+    if fmt == 'f':
+        return float(string)
+    if fmt == 's':
+        return str(string)
+
+def parse(string, flist):
+    string = string.strip()
+    print "parsing", string, "ito", flist
+    datas = string.split(',')
+    result = {}
+    for d,f in zip(datas, flist):
+        w = d.split(':')
+        result[w[0]] = format(w[1],f)
+    return result
+
 def range125(start, stop):
     r = []
     while start < stop:
@@ -25,6 +43,15 @@ class Tektronix2430A(gpib.GpibDevice):
                                 channelPositionVals, couplingVals, fiftyOhmVals,
                                 invertVals]
 
+    verticalModeCh1 = ['ON', 'OFF']
+    verticalModeCh2 = ['ON', 'OFF']
+    verticalModeAdd = ['ON', 'OFF']
+    verticalModeMult = ['ON', 'OFF']
+    verticalModeDisplay = ['XY', 'YT']
+    validVerticalModeParameters = [verticalModeCh1, verticalModeCh2,
+                                    verticalModeAdd, verticalModeMult,
+                                    verticalModeDisplay] 
+
     def __init__(self, gpibDevice, addr):
         gpib.GpibDevice.__init__(self, gpibDevice, addr)
 
@@ -46,9 +73,12 @@ class Tektronix2430A(gpib.GpibDevice):
         self.sendCommand('ID?')
         return self.readIterative()
     
-    def getChannelInfo(self):
-        self.sendCommand('CH1?')
-        return self.readIterative()
+    def getChannelInfo(self, channel):
+        self.verifyParameters([channel], [Tektronix2430A.channelVals])
+        self.sendCommand('CH%d?'%(channel))
+        channelInfo = self.readIterative()
+        channelInfo = channelInfo.split(' ')[1]
+        return parse(channelInfo, 'fffsss')
 
     def setChannel(self, ch, voltsPerDiv, varVoltsPerDiv, pos, coupling, fiftyOhm, invert):
         if not self.verifyParameters([ch, voltsPerDiv, varVoltsPerDiv, pos, coupling, fiftyOhm, invert], Tektronix2430A.validChannelParameters):
@@ -67,7 +97,26 @@ class Tektronix2430A(gpib.GpibDevice):
         else:
             self.sendCommand('BWL %s'%(lim))
             return self.readIterative()
-        
+
+    def getProbes(self):
+        self.sendCommand('PROB?')
+        probes = self.readIterative() 
+        parsed = parse(probes, 'iiii')
+        return parsed
+
+    def getVerticalMode(self):
+        self.sendCommand('VMO?')
+        vmode = self.readIterative() 
+        parsed = parse(vmode, 'sssss')
+        return parsed
+
+    def setVerticalMode(self, ch1, ch2, add, mult, display): 
+        self.verifyParameters([ch1, ch2, add, mult, display], 
+                            Tektronix2430A.validVerticalModeParameters)
+        self.sendCommand('VMODE CH1:%s,CH2:%s,ADD:%s,MULT:%s,DISPLAY:%s'%
+                    (ch1, ch2, add, mult, display))
+        return self.readIterative()
+
     def getTrace(self):
         self.sendCommand('WAV?')
         return self.readIterative()
