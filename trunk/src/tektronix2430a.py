@@ -11,7 +11,6 @@ def format(string, fmt):
 
 def parse(string, flist):
     string = string.strip()
-    print "parsing", string, "ito", flist
     datas = string.split(',')
     result = {}
     for d,f in zip(datas, flist):
@@ -29,6 +28,18 @@ def range125(start, stop):
     return r
 
 class Tektronix2430A(gpib.GpibDevice):
+
+    aTrigger = {
+        "MODE": ('s', ("AUTOLEVEL", "AUTO", "NORMAL", "SGLSEQ")),
+        "SOURCE": ('s', ("CH1", "CH2", "VERTICAL", "EXT1", "EXT2")),
+        "LOGSRC": ('s', ("WORD", "A.B", "OFF")),
+        "COUPLING": ('s',("AC", "DC", "LFREJ", "HFREJ", "NOISEREJ", "TV")),
+        "LEVEL": ('f', None),
+        "SLOPE": ('s', ("PLUS", "MINUS")),
+        "POSITION": ('i',('set', range(31)[1:])),
+        "HOLDOFF": ('f',('range', 0.0, 100.0)),
+        "ABSELECT":('s', ("A", "B")),
+    } 
     channelVals = [1,2]
     bandwidthVals = ['TWEnty', 'FIFty', 'FULl']
     #Note that the scope divides this value with probe attenuation
@@ -117,6 +128,53 @@ class Tektronix2430A(gpib.GpibDevice):
                     (ch1, ch2, add, mult, display))
         return self.readIterative()
 
+    def validateString(self, value, ref):
+            if ref:
+                return value in ref
+            return True
+
+    def validateFloat(self, value, ref):
+        if ref:
+            if(ref[0] == 'set'):
+                return value in ref[1]
+            if(ref[0] == 'range'):
+                return value <= ref[2] and value >= ref[1]
+            return False
+        return True
+    
+    def validateValue(self, value, ref):
+        if(ref[0] == 's'):
+            return self.validateString(value, ref[1])
+        if(ref[0] == 'f'):
+            return self.validateFloat(value, ref[1]) #works for all numbers
+        if(ref[0] == 'i'):
+            return self.validateFloat(value, ref[1]) #works for all numbers
+        
+    def validateDictionary(self, dinput, dref):
+        success = True
+        for key in dinput:
+            if not self.validateValue(dinput[key], dref[key]):
+                print dinput[key], "is not in", dref[key]
+                success = False;
+        return success       
+            
+    def getATrigger(self):
+        self.sendCommand('ATR?')
+        atr = self.readIterative().split(' ')[1]
+        return parse(atr, 'ssssfsifs')
+
+    def buildCommand(self, d):
+        cmd = ''
+        for key in d:
+            cmd+="%s:%s,"%(key, str(d[key]))
+        return cmd[:-1]
+
+    def setATriggerD(self, d):
+        if self.validateDictionary(d, Tektronix2430A.aTrigger):
+            print "sending", self.buildCommand(d)
+            self.sendCommand("ATR "+self.buildCommand(d))
+            return self.readIterative()
+        
     def getTrace(self):
         self.sendCommand('WAV?')
         return self.readIterative()

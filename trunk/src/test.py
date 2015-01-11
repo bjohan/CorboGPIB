@@ -17,9 +17,9 @@ manager.useConfig('test.cfg')
 #manager.verifyDrivers()
 #gpib.debugEnable = True
 #meter = hp3438a.Hp3438A(gpib, 2)
-meter = manager.getInstrumentByAddress(2) 
+meter = manager.getInstrumentsByDriverName('Hp3438A')[0]
 #scope = tektronix2430a.Tektronix2430A(gpib,1)
-scope = manager.getInstrumentByAddress(3) 
+scope = manager.getInstrumentsByDriverName('Tektronix2430A')[0]
 print "Reading from multimeter:", meter.readValue()
 print "Getting identification"
 print scope.getIdentification()
@@ -36,3 +36,7 @@ print "Info for channel 1", scope.getChannelInfo(2)
 print "Probes", scope.getProbes()
 scope.setVerticalMode('ON', 'OFF', 'OFF', 'OFF', 'XT')
 print "Vertical mode", scope.getVerticalMode()
+trg = scope.getATrigger()
+print "Trigger setings", trg
+trg['LEVEL'] = 0.0
+print scope.setATriggerD(trg)

@@ -50,6 +50,16 @@ class GpibManager:
             self.createInstruments()
         return self.addressInstrumentMap[address]
 
+    def getInstrumentsByDriverName(self, driverName):
+        if len(self.addressDriverMap) != len(self.addressInstrumentMap):
+            self.createInstruments()
+        instruments = []
+        for addr, driver in self.addressDriverMap.iteritems():
+            if driver == driverName:
+                instruments.append(self.addressInstrumentMap[addr])
+        return instruments
+        
+
     def saveConfiguration(self, fileName):
         of = open(fileName, 'w')
         for addr in self.addressDriverMap:
