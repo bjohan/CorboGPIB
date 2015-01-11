@@ -27,6 +27,12 @@ class Tektronix2430A(gpib.GpibDevice):
 
     def __init__(self, gpibDevice, addr):
         gpib.GpibDevice.__init__(self, gpibDevice, addr)
+
+    def identify(self):
+        idString = self.getIdentification()
+        if idString:
+            return "TEK/2430A" in idString
+        return False
     
     def verifyParameters(self, toValidate, validParams):
         valid = True

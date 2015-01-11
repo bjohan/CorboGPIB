@@ -5,6 +5,10 @@ class Hp3438A(gpib.GpibDevice):
     def __init__(self, gpibDevice, addr):
         gpib.GpibDevice.__init__(self, gpibDevice, addr)
 
+    def identify(self):
+        (value, unit) = self.readValue()
+        return (value != None) and (unit != None)
+
     def readValue(self, maxTries = 10):
         while True:
             data = self.read()
@@ -14,7 +18,6 @@ class Hp3438A(gpib.GpibDevice):
             if maxTries > 0:
                 maxTries -= 1
             else:
-                print "Not getting any data, giving up"
                 return (None, None)
         try:
             (value, unit) = data.strip().split(',')
