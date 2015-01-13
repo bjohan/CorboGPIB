@@ -40,3 +40,8 @@ trg = scope.getATrigger()
 print "Trigger setings", trg
 trg['LEVEL'] = 0.0
 print scope.setATriggerD(trg)
+
+trg = scope.getBTrigger()
+print "Trigger setings", trg
+trg['LEVEL'] = 1.0
+print scope.setBTriggerD(trg)

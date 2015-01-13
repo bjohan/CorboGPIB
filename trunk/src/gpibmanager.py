@@ -104,5 +104,6 @@ class GpibManager:
         if len(failed) > 0:
             print len(failed), "drivers failed verification, scanning..."
             self.scanBus()
-        self.saveConfiguration(fileName)
+        if len(self.addressDriverMap) > 0:
+            self.saveConfiguration(fileName)
         

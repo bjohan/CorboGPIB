@@ -39,6 +39,16 @@ class Tektronix2430A(gpib.GpibDevice):
         "POSITION": ('i',('set', range(31)[1:])),
         "HOLDOFF": ('f',('range', 0.0, 100.0)),
         "ABSELECT":('s', ("A", "B")),
+    }
+
+    bTrigger = {
+        "MODE": ('s', ("RUNSAFT", "TRIGAFT")),
+        "EXTCLK": ('s', ("ON", "OFF")),
+        "SOURCE": ('s', ("CH1", "CH2", "WORD", "VERTICAL", "EXT1", "EXT2")),
+        "COUPLING": ('s', ("AC", "DC", "LFREJ", "HFREJ", "NOISEREJ")),
+        "LEVEL": ('f', None),
+        "SLOPE": ('s', ("PLUS", "MINUS")),
+        "POSITION": ('i',('set', range(31)[1:])),
     } 
     channelVals = [1,2]
     bandwidthVals = ['TWEnty', 'FIFty', 'FULl']
@@ -174,7 +184,16 @@ class Tektronix2430A(gpib.GpibDevice):
             print "sending", self.buildCommand(d)
             self.sendCommand("ATR "+self.buildCommand(d))
             return self.readIterative()
-        
+
+    def getBTrigger(self):
+        self.sendCommand('BTR?')
+        btr = self.readIterative().split(' ')[1]
+        return parse(btr, 'ssssfsi')
+
+    def setBTriggerD(self, d):
+        self.sendCommand('BTR '+self.buildCommand(d))
+        return self.readIterative()
+
     def getTrace(self):
         self.sendCommand('WAV?')
         return self.readIterative()
