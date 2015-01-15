@@ -29,13 +29,10 @@ scope.setBandwidthLimit('TWEnty')
 print "Getting bwl"
 print scope.getBandwidthLimit()
 print "Configuring channel 1"
-scope.setChannel(1,0.1,0,0,'AC', 'OFF', 'OFF')
-print "reading channel 1"
-print "Info for channel 1", scope.getChannelInfo(1)
-print "Info for channel 1", scope.getChannelInfo(2)
 print "Probes", scope.getProbes()
-scope.setVerticalMode('ON', 'OFF', 'OFF', 'OFF', 'XT')
-print "Vertical mode", scope.getVerticalMode()
+print "getting vertical mode"
+vm = scope.getVerticalMode()
+scope.setVerticalModeD(vm)
 trg = scope.getATrigger()
 print "Trigger setings", trg
 trg['LEVEL'] = 0.0
@@ -45,3 +42,20 @@ trg = scope.getBTrigger()
 print "Trigger setings", trg
 trg['LEVEL'] = 1.0
 print scope.setBTriggerD(trg)
+print "Getting channel1"
+ch1 = scope.getChannel1()
+print ch1
+print "Getting channel2"
+ch2 = scope.getChannel2()
+print "Setting channel1", scope.setChannel1D(ch2)
+print "Setting channel2", scope.setChannel2D(ch1)
+print "Getting setword"
+word = scope.getSetWord();
+print word
+print "Setting word", scope.setSetWordD(word)
+
+print "man trig", scope.manTrig()
+#print "Getting ext gain"
+#eg = scope.getExtGain()
+#print eg
+#print "Setting ext gain", scope.setExtGain(eg)

@@ -1,6 +1,6 @@
 import time
 import gpib
-
+#TODO try to come up with a more general parser/generator for various GPIB messages
 def format(string, fmt):
     if fmt == 'i':
         return int(string)
@@ -49,29 +49,50 @@ class Tektronix2430A(gpib.GpibDevice):
         "LEVEL": ('f', None),
         "SLOPE": ('s', ("PLUS", "MINUS")),
         "POSITION": ('i',('set', range(31)[1:])),
-    } 
-    channelVals = [1,2]
-    bandwidthVals = ['TWEnty', 'FIFty', 'FULl']
-    #Note that the scope divides this value with probe attenuation
-    voltagePerDivisionVals = range125(0.0001, 5000)[1:] #skip 100uV
-    voltagePerDivisionVariableVals = range(0,100)
-    channelPositionVals = range(-10, 10)
-    couplingVals = ['AC', 'DC', 'GND']
-    fiftyOhmVals = ['ON', 'OFF']
-    invertVals = ['ON', 'OFF']
-    validChannelParameters = [channelVals, voltagePerDivisionVals, 
-                                voltagePerDivisionVariableVals, 
-                                channelPositionVals, couplingVals, fiftyOhmVals,
-                                invertVals]
+    }
+    ch1 = {
+        "VOLTS": ('f', ('set', range125(0.0001, 5000)[1:])), #skip 100uV
+        "VARIABLE": ('f', ('range', 0.0, 100.0)),
+        "POSITION": ('f', ('range', -10.0, 10.0)),
+        "COUPLING": ('s', ("AC", "DC", "GND")),
+        "FIFTY": ('s', ("ON", "OFF")),
+        "INVERT": ('s', ("ON", "OFF")),
+    }
+    ch2 = ch1
+    probe = ('s', ("CH1", "CH2", "EXT1", "EXT2"))
+    bandwidthLimit = ('s', ("TWENTY", "FIFTY", "FULL"))
+    verticalMode = {
+        "CH1": ('s', ("ON", "OFF")),
+        "CH2": ('s', ("ON", "OFF")),
+        "ADD": ('s', ("ON", "OFF")),
+        "MULT": ('s', ("ON", "OFF")),
+        "DISPLAY": ('s', ("XY", "XT"))}
 
-    verticalModeCh1 = ['ON', 'OFF']
-    verticalModeCh2 = ['ON', 'OFF']
-    verticalModeAdd = ['ON', 'OFF']
-    verticalModeMult = ['ON', 'OFF']
-    verticalModeDisplay = ['XY', 'YT']
-    validVerticalModeParameters = [verticalModeCh1, verticalModeCh2,
-                                    verticalModeAdd, verticalModeMult,
-                                    verticalModeDisplay] 
+    bandwidthVals = ['TWEnty', 'FIFty', 'FULl']
+
+    setTv = {
+        "ICOUPLING": ('s', ("FLD1", "FLD2", "ALT", "TVLINE")),
+        "NICOUPLING": ('s', ("FLD1", "TVLINE")),
+        "INTERLACED": ('s', ("This command is query only, do not use")),
+        "TVCLAMP": ('s', ("ON", "OFF")),
+        "TVLINE": ('i', None),
+        "LCNTRESET": ('s', ("F1ONLY", "BOTH")),
+        "LCNTSTART": ('s', ("PREFID", "ATFID")),
+        "SYNC": ('s', ("PLUS", "MINUS")),
+    }
+
+    setWord = {
+        "RADIX": ('s', ("OCT", "HEX")),
+        "CLOCK": ('s', ("ASYNC", "FALL", "RISE")),
+        "WORD": ('s', None), #TODO make validation support this kind of value
+                              #01Xx0110x01X etc.
+        "PROBE": ('s', ("This command is query only, do not use")),
+    }
+
+    extGain = {
+        "EXT1": ('s', ("DIV1", "DIV5")),
+        "EXT2": ('s', ("DIV1", "DIV5")),
+    }
 
     def __init__(self, gpibDevice, addr):
         gpib.GpibDevice.__init__(self, gpibDevice, addr)
@@ -82,40 +103,16 @@ class Tektronix2430A(gpib.GpibDevice):
             return "TEK/2430A" in idString
         return False
     
-    def verifyParameters(self, toValidate, validParams):
-        valid = True
-        for (tv, valid) in zip(toValidate, validParams):
-            if tv not in valid:
-                print tv, "is not a valid. The valid values are:", valid
-                valid = False;
-        return valid
-
     def getIdentification(self):
         self.sendCommand('ID?')
         return self.readIterative()
     
-    def getChannelInfo(self, channel):
-        self.verifyParameters([channel], [Tektronix2430A.channelVals])
-        self.sendCommand('CH%d?'%(channel))
-        channelInfo = self.readIterative()
-        channelInfo = channelInfo.split(' ')[1]
-        return parse(channelInfo, 'fffsss')
-
-    def setChannel(self, ch, voltsPerDiv, varVoltsPerDiv, pos, coupling, fiftyOhm, invert):
-        if not self.verifyParameters([ch, voltsPerDiv, varVoltsPerDiv, pos, coupling, fiftyOhm, invert], Tektronix2430A.validChannelParameters):
-            print "Invalid parameter(s) channel is not configured"
-        else:
-            self.sendCommand("CH%d VOLTS:%f,VARIABLE:%d,POSITION:%d,COUPLING:%s,FIFTY:%s,INVERT:%s"%(ch, voltsPerDiv, varVoltsPerDiv, pos, coupling, fiftyOhm, invert))
-            return self.readIterative()
-
     def getBandwidthLimit(self):
         self.sendCommand('BWL?')
         return self.readIterative()
 
     def setBandwidthLimit(self, lim):
-        if not self.verifyParameters([lim], [Tektronix2430A.bandwidthVals]):
-            print "Invalid parameter bandwidth limit is not configured"
-        else:
+        if self.validateValue(lim, Tektronix2430A.bandwidthLimit):
             self.sendCommand('BWL %s'%(lim))
             return self.readIterative()
 
@@ -127,16 +124,17 @@ class Tektronix2430A(gpib.GpibDevice):
 
     def getVerticalMode(self):
         self.sendCommand('VMO?')
-        vmode = self.readIterative() 
+        vmode = self.readIterative().split(' ')[1] 
         parsed = parse(vmode, 'sssss')
         return parsed
 
-    def setVerticalMode(self, ch1, ch2, add, mult, display): 
-        self.verifyParameters([ch1, ch2, add, mult, display], 
-                            Tektronix2430A.validVerticalModeParameters)
-        self.sendCommand('VMODE CH1:%s,CH2:%s,ADD:%s,MULT:%s,DISPLAY:%s'%
-                    (ch1, ch2, add, mult, display))
-        return self.readIterative()
+    def validateAndSendCommand(self, cmd, din, dref):
+        if self.validateDictionary(din, dref):
+            self.sendCommand(cmd+' '+self.buildCommand(din))
+            return self.readIterative()
+
+    def setVerticalModeD(self, d):
+        return self.validateAndSendCommand('VMODE', d, Tektronix2430A.verticalMode)
 
     def validateString(self, value, ref):
             if ref:
@@ -198,3 +196,56 @@ class Tektronix2430A(gpib.GpibDevice):
         self.sendCommand('WAV?')
         return self.readIterative()
 
+    def getChannel1(self):
+        self.sendCommand('CH1?')
+        ch1 = self.readIterative().split(' ')[1]
+        return parse(ch1, 'fffsss')
+
+    def setChannel1D(self,d):
+        if self.validateDictionary(d, Tektronix2430A.ch1):
+            self.sendCommand('CH1 '+self.buildCommand(d))
+            return self.readIterative()
+
+    def getChannel2(self):
+        self.sendCommand('CH2?')
+        ch2 = self.readIterative().split(' ')[1]
+        return parse(ch2, 'fffsss')
+    
+    def setChannel2D(self,d):
+        if self.validateDictionary(d, Tektronix2430A.ch2):
+            self.sendCommand('CH2 '+self.buildCommand(d))
+            return self.readIterative()
+
+    def getSetTv(self):
+        #Untested, i do not have tv trigger on my scope
+        self.sendCommand('SETTV?')
+        settv = self.readIterative()
+        return parse(settv.split(' ')[1], 'ssssisss')
+
+    def setSetTvD(self, d):
+        #Untested, i do not have tv trigger on my scope
+        return self.validateAndSendCommand('SETTV', d, Tektronix2430A.setTv)
+
+    def getSetWord(self):
+        self.sendCommand('SETWORD?')
+        word = self.readIterative()
+        return parse(word.split(' ')[1], 'ssss')
+        
+    def setSetWordD(self, d):
+        #Untested, i do not have tv trigger on my scope
+        return self.validateAndSendCommand('SETWORD', d, Tektronix2430A.setWord)
+
+    def manTrig(self):
+        self.sendCommand('MANTRIG');
+        return self.readIterative()
+
+    def getExtGain(self):
+        #untested does not seem to be supported by my scope
+        self.sendCommand('EXTGAIN?')
+        eg = self.readIterative()
+        return parse(eg.split(' ')[1], 'ss')
+        
+    def setSetExtGainD(self, d):
+        #untested does not seem to be supported by my scope
+        return self.validateAndSendCommand('EXTGAIN?', d, Tektronix2430A.extGain)
+    
