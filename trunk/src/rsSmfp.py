@@ -45,13 +45,13 @@ class RsSmfp(gpib.GpibDevice):
         self.writeline("AT");
 
     def modulation(self, modType):
-        self.writeline(self.modulationTypes[modtype])
+        self.writeline(self.modulationTypes[modType])
 
     def onOff(self, on, onCmd, offCmd):
         if on == True:
-            self.writeLine(onCmd);
+            self.writeline(onCmd);
         else:
-            self.writeLine(offCmd);
+            self.writeline(offCmd);
 
     def rfOn(self, on):
         self.onOff(on, "D@", "E@");
@@ -74,6 +74,7 @@ class RsSmfp(gpib.GpibDevice):
 
     def reset(self):
         self.refFunction(99)
+        time.sleep(3)
 
     def sigGenFrequency(self, frequency):
         self.writeline("AG"+str(frequency))
@@ -81,10 +82,10 @@ class RsSmfp(gpib.GpibDevice):
     def sigGenLevel(self, level, unit="dBm"):
         self.writeline(self.sigGenLevelUnits[unit]+str(float(level)))
 
-    def incrSigGenLevel(self):
+    def incSigGenLevel(self):
         self.writeline("EK")
 
-    def decrSigGenLevel(self):
+    def decSigGenLevel(self):
         self.writeline("DK")
 
     def modInt(self, value = None, off = False):
@@ -92,7 +93,7 @@ class RsSmfp(gpib.GpibDevice):
         if not off:
             if value is not None:
                 self.writeline("AM"+str(int(value)))
-            else
+            else:
                 self.writeline("AM")
         else:
             self.writeline("EM")
@@ -102,32 +103,32 @@ class RsSmfp(gpib.GpibDevice):
         if not off:
             if value is not None:
                 self.writeline("AZ"+str(int(value)))
-            else
+            else:
                 self.writeline("AZ")
         else:
             self.writeline("EZ")
 
-    def modGenFreq(self, freq)
+    def modGenFreq(self, freq):
         #Freq in khz
-        self.writeLine("AO"+str(float(freq))
+        self.writeline("AO"+str(float(freq)))
 
-    def modGenLevel(self, level)
-        #Freq in mv
-        self.writeLine("AQ"+str(float(freq))
+    def modGenLevel(self, level):
+        #level in mv
+        self.writeline("AQ"+str(float(level)))
 
     def incDeltaF(self, incr = None):
         #incr delta f in khz
         if incr is not None:
-            self.writeLine("AD"+str(float(freq))
+            self.writeline("AE"+str(float(incr)))
         else:
-            self.writeLine("AD")
+            self.writeline("AE")
             
-    def decDeltaF(self, incr = None):
+    def decDeltaF(self, decr = None):
         #incr delta f in khz
-        if incr is not None:
-            self.writeLine("AE"+str(float(freq))
+        if decr is not None:
+            self.writeline("AD"+str(float(decr)))
         else:
-            self.writeLine("AE")
+            self.writeline("AD")
            
 
     #Store and recall not implemented
