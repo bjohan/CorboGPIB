@@ -20,6 +20,7 @@ class Hp3438A(gpib.GpibDevice):
             else:
                 return (None, None)
         try:
+            print "data", data
             (value, unit) = data.strip().split(',')
             numVal = float(value)
             strUnit = ['V DC', 'V AC', 'A DC', 'A AC', 'Ohm'][int(unit)-1]

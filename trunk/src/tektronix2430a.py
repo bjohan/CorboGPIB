@@ -196,6 +196,15 @@ class Tektronix2430A(gpib.GpibDevice):
         self.sendCommand('WAV?')
         return self.readIterative()
 
+    def getTraceF(self):
+            return self.toFloat(self.getTrace().split('CURVE')[1])
+
+    def toFloat(self, data):
+        f = []
+        for d in data.split(','):
+            f.append(float(d))
+        return f
+
     def getChannel1(self):
         self.sendCommand('CH1?')
         ch1 = self.readIterative().split(' ')[1]

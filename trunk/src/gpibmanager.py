@@ -82,7 +82,12 @@ class GpibManager:
         for addr, driver in self.addressDriverMap.iteritems():
             print "Verifying that", addr, "is a", driver,
             sys.stdout.flush()
-            d = self.drivers[driver](self.gpib, addr)
+            try:
+                d = self.drivers[driver](self.gpib, addr)
+            except KeyError:
+                print "Driver for", driver, "is not registered"
+                return failed
+
             if d.identify():
                 print "OK"
             else:

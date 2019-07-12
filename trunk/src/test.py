@@ -2,28 +2,34 @@ import sys
 import serial
 import gpib
 import gpibmanager
-
+import matplotlib.pyplot as plt
 import tektronix2430a
 import hp3438a
 
 print "opeinging", sys.argv[1]
 p = serial.Serial(sys.argv[1], 115200, timeout = 1)
+print "Creating gpib interface"
 gpib = gpib.GpibInterface(p)
+print "Creating gpib manager"
 manager = gpibmanager.GpibManager(gpib)
+print "Registering drivers"
 manager.registerDriver(tektronix2430a.Tektronix2430A)
 manager.registerDriver(hp3438a.Hp3438A)
 manager.useConfig('test.cfg')
-#manager.scanBus()
+manager.scanBus()
 #manager.verifyDrivers()
+#manager.saveConfiguration('test.cfg')
 #gpib.debugEnable = True
 #meter = hp3438a.Hp3438A(gpib, 2)
-meter = manager.getInstrumentsByDriverName('Hp3438A')[0]
+#meter = manager.getInstrumentsByDriverName('Hp3438A')[0]
 #scope = tektronix2430a.Tektronix2430A(gpib,1)
 scope = manager.getInstrumentsByDriverName('Tektronix2430A')[0]
-print "Reading from multimeter:", meter.readValue()
+#print "Reading from multimeter:", meter.readValue()
 print "Getting identification"
 print scope.getIdentification()
-#print scope.getTrace()
+print scope.getTrace()
+plt.plot( scope.getTraceF())
+plt.show()
 print "Setting bwl"
 scope.setBandwidthLimit('TWEnty')
 print "Getting bwl"
@@ -44,7 +50,7 @@ trg['LEVEL'] = 1.0
 print scope.setBTriggerD(trg)
 print "Getting channel1"
 ch1 = scope.getChannel1()
-print ch1
+print len(ch1), "bytes", ch1
 print "Getting channel2"
 ch2 = scope.getChannel2()
 print "Setting channel1", scope.setChannel1D(ch2)
