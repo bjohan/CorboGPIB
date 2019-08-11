@@ -15,6 +15,8 @@ class RsSmfp(gpib.GpibDevice):
                                 "mV": "AJ",
                                 "dBm": "AK",
                                 "dBuV": "AL"}
+
+        self.powerMeterUnits = { "W": "AW", "dBm": "BL"}
     def writeline(self, data):
         self.write(data+'\n')
 
@@ -130,7 +132,33 @@ class RsSmfp(gpib.GpibDevice):
         else:
             self.writeline("AD")
            
+#Store and recall not implemented
 
-    #Store and recall not implemented
+    def query(self, cmd, timeout = 1.0):
+        self.writeline(cmd)
+        time.sleep(timeout)
+        return self.read()
+
+    def parseCommandResponse(self, pfx, data):
+        #print "cmd", pfx, "data", data
+        if data[0:2] == pfx:
+            data = data[2:]
+        num, exp = data.split('E')
+        return float(num)*10.0**(float(exp))
+
+    def numericalQuery(self, cmd, pfx, timeout = 1.0):
+        data = self.query(cmd, timeout)
+        return self.parseCommandResponse(pfx, data)
+
+    def measureFrequency(self):
+        return self.numericalQuery("AF", "AF")
+
+    def rfFreq(self):
+        return  self.numericalQuery("AT", "AF")
+
+    def power(self, unit = "dBm"):
+        cmdpfx = self.powerMeterUnits[unit]
+        return self.numericalQuery(cmdpfx, cmdpfx)
+
 
 
